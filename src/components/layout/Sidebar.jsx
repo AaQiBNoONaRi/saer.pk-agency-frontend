@@ -84,11 +84,12 @@ export default function Sidebar({ activeTab, setActiveTab, isSidebarOpen, setSid
                             isOpen={isSidebarOpen}
                             isExpanded={isBookingsOpen}
                             onClick={() => setBookingsOpen(!isBookingsOpen)}
-                            active={['Custom Package', 'Umrah Package', 'Ticket'].includes(activeTab)}
+                            active={['Custom Package', 'Umrah Package', 'Ticket', 'Flight Search - Single', 'Flight Search - Round', 'Flight Search - Multi'].includes(activeTab)}
                         >
                             <DropdownItem label="Custom Package" active={activeTab === 'Custom Package'} onClick={() => handleNavClick('Custom Package')} />
                             <DropdownItem label="Umrah Package" active={activeTab === 'Umrah Package'} onClick={() => handleNavClick('Umrah Package')} />
                             <DropdownItem label="Ticket" active={activeTab === 'Ticket'} onClick={() => handleNavClick('Ticket')} />
+                            <DropdownItem label="Flight Search" active={activeTab === 'Flight Search'} onClick={() => handleNavClick('Flight Search')} />
                         </NavDropdown>
                         <NavItem
                             icon={<Package size={20} />}
