@@ -45,7 +45,7 @@ export default function Dashboard() {
     };
 
     return (
-        <main className="p-8 max-w-[1600px] mx-auto">
+        <div>
 
             {/* PAGE TITLE */}
             <div className="mb-8">
@@ -187,6 +187,6 @@ export default function Dashboard() {
                 </div>
             </div>
 
-        </main>
+        </div>
     );
 }

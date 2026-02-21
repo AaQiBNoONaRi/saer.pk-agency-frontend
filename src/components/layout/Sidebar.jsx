@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Ticket, Package, Users, CreditCard, BarChart3, Settings,
-    ChevronUp, ChevronDown, LogOut, UserCircle, X
+    ChevronUp, ChevronDown, LogOut, UserCircle, X, History
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, isSidebarOpen, setSidebarOpen, setIsLoggedIn }) {
@@ -125,6 +125,13 @@ export default function Sidebar({ activeTab, setActiveTab, isSidebarOpen, setSid
                             label="Payments"
                             active={activeTab === 'Payments'}
                             onClick={() => handleNavClick('Payments')}
+                            isOpen={isSidebarOpen}
+                        />
+                        <NavItem
+                            icon={<History size={20} />}
+                            label="Booking History"
+                            active={activeTab === 'Booking History'}
+                            onClick={() => handleNavClick('Booking History')}
                             isOpen={isSidebarOpen}
                         />
                         <NavItem

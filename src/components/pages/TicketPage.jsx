@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Search, MoveRight, Plane, Calendar, Users, DollarSign, ShoppingCart } from 'lucide-react';
+import BookingPage from './BookingPage';
 
 const TicketPage = () => {
     const [tickets, setTickets] = useState([]);
@@ -10,6 +11,8 @@ const TicketPage = () => {
         departureCity: '',
         arrivalCity: ''
     });
+    const [showBooking, setShowBooking] = useState(false);
+    const [selectedTicket, setSelectedTicket] = useState(null);
 
     useEffect(() => {
         fetchTickets();
@@ -76,12 +79,38 @@ const TicketPage = () => {
     };
 
     const handleBook = (ticket) => {
-        alert(`Booking ticket: ${ticket.departure_trip.departure_city} → ${ticket.departure_trip.arrival_city}\nThis will open the booking form.`);
-        // TODO: Navigate to booking form with ticket details
+        // Prepare booking data with full ticket info
+        const bookingData = {
+            type: 'Flight Ticket',
+            itemDetails: {
+                route: `${ticket.departure_trip.departure_city} → ${ticket.departure_trip.arrival_city}`,
+                dates: `${new Date(ticket.departure_trip.departure_datetime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}${ticket.return_trip ? ' - ' + new Date(ticket.return_trip.departure_datetime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}`,
+                airline: ticket.departure_trip.airline,
+                flightNo: ticket.departure_trip.flight_number
+            },
+            ticketId: ticket._id,
+            fullTicketData: ticket // Pass complete ticket data for pricing
+        };
+        
+        setSelectedTicket(bookingData);
+        setShowBooking(true);
     };
 
+    // Show booking page if ticket is selected
+    if (showBooking && selectedTicket) {
+        return (
+            <BookingPage 
+                bookingData={selectedTicket}
+                onBack={() => {
+                    setShowBooking(false);
+                    setSelectedTicket(null);
+                }}
+            />
+        );
+    }
+
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
                 <div>
                     <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Flight Tickets</h2>
