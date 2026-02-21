@@ -3,14 +3,16 @@ import Dashboard from './components/pages/Dashboard';
 import AgentUmrahCalculator from './components/pages/AgentUmrahCalculator';
 import LoginPage from './components/pages/LoginPage';
 import UmrahPackagePage from './components/pages/UmrahPackagePage';
+import UmrahBookingPage from './components/pages/UmrahBookingPage';
 import TicketPage from './components/pages/TicketPage';
+import CustomBookingPage from './components/pages/CustomBookingPage';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import './index.css';
 
 // Placeholder pages
 const PlaceholderPage = ({ title }) => (
-  <div className="p-8">
+  <div>
     <h1 className="text-3xl font-black text-slate-900 mb-4">{title}</h1>
     <p className="text-slate-500">This page is under construction.</p>
   </div>
@@ -20,6 +22,22 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access_token'));
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [bookingFlights, setBookingFlights] = useState([]);
+  const [bookingAirlines, setBookingAirlines] = useState([]);
+  const [customBookingData, setCustomBookingData] = useState(null);
+
+  const handleBookCustomPackage = (data) => {
+    setCustomBookingData(data);
+    setActiveTab('Custom Package Booking');
+  };
+
+  const handleBookPackage = (pkg, flights = [], airlines = []) => {
+    setSelectedPackage(pkg);
+    setBookingFlights(flights);
+    setBookingAirlines(airlines);
+    setActiveTab('Umrah Package Booking');
+  };
 
   const handleLogin = () => {
     setIsLoggedIn(true);
@@ -35,9 +53,25 @@ function App() {
       case 'Dashboard':
         return <Dashboard />;
       case 'Custom Package':
-        return <AgentUmrahCalculator />;
+        return <AgentUmrahCalculator onBookCustomPackage={handleBookCustomPackage} />;
+      case 'Custom Package Booking':
+        return customBookingData ? (
+          <CustomBookingPage
+            calculatorData={customBookingData}
+            onBack={() => setActiveTab('Custom Package')}
+          />
+        ) : null;
       case 'Umrah Package':
-        return <UmrahPackagePage />;
+        return <UmrahPackagePage onBookPackage={handleBookPackage} />;
+      case 'Umrah Package Booking':
+        return selectedPackage ? (
+          <UmrahBookingPage
+            packageData={selectedPackage}
+            flights={bookingFlights}
+            airlines={bookingAirlines}
+            onBack={() => setActiveTab('Umrah Package')}
+          />
+        ) : null;
       case 'Ticket':
         return <TicketPage />;
       case 'Packages':
@@ -73,8 +107,10 @@ function App() {
           onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
         />
 
-        <main className="flex-1 overflow-y-auto">
-          {renderContent()}
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          <div className="max-w-[1600px] mx-auto">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </div>

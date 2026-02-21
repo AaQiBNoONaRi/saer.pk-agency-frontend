@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Truck, ShieldCheck, Plane, Utensils, DollarSign, ShoppingCart } from 'lucide-react';
 
-const UmrahPackagePage = () => {
+const UmrahPackagePage = ({ onBookPackage }) => {
     const [packages, setPackages] = useState([]);
+    const [flights, setFlights] = useState([]);
+    const [airlines, setAirlines] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const fetchPackages = async () => {
@@ -37,19 +39,52 @@ const UmrahPackagePage = () => {
 
     useEffect(() => {
         fetchPackages();
+        fetchFlights();
+        fetchAirlines();
     }, []);
 
+    const fetchFlights = async () => {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:8000/api/flights/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setFlights(data);
+            }
+        } catch (error) {
+            console.error('Error fetching flights:', error);
+        }
+    };
+
+    const fetchAirlines = async () => {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:8000/api/others/flight-iata?is_active=true', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setAirlines(data);
+            }
+        } catch (error) {
+            console.error('Error fetching airlines:', error);
+        }
+    };
+
     const handleBook = (pkg) => {
-        alert(`Booking package: ${pkg.title}\nThis will open the booking form.`);
-        // TODO: Navigate to booking form with package details
+        if (onBookPackage) {
+            onBookPackage(pkg, flights, airlines);
+        }
     };
 
     if (loading) {
-        return <div className="p-8 text-center text-slate-500">Loading packages...</div>;
+        return <div className="text-center text-slate-500">Loading packages...</div>;
     }
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
                     <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Umrah Packages</h2>
@@ -67,6 +102,8 @@ const UmrahPackagePage = () => {
                         <UmrahPackageCard
                             key={pkg._id}
                             packageData={pkg}
+                            flights={flights}
+                            airlines={airlines}
                             onBook={handleBook}
                         />
                     ))
@@ -76,10 +113,60 @@ const UmrahPackagePage = () => {
     );
 };
 
-const UmrahPackageCard = ({ packageData, onBook }) => {
+const UmrahPackageCard = ({ packageData, onBook, flights = [], airlines = [] }) => {
     const formatPrice = (price) => price ? price.toLocaleString() : 'N/A';
     const hotels = packageData.hotels || [];
     const prices = packageData.package_prices || {};
+    // normalize flight times for display (handle various shapes)
+    const normalizeFlightTimes = (f) => {
+        if (!f) return null;
+        const departure_time = f.departure_time || f.time || f.departure_trip?.departure_time || (f.departure_trip?.departure_datetime ? new Date(f.departure_trip.departure_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null) || null;
+        const arrival_time = f.arrival_time || f.departure_trip?.arrival_time || (f.departure_trip?.arrival_datetime ? new Date(f.departure_trip.arrival_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null) || null;
+        return { departure_time, arrival_time };
+    };
+
+    // Resolve flight data when package stores only an ID
+    const resolveRawFlight = (pkg) => {
+        const flightId = typeof pkg.flight === 'object' ? pkg.flight?.id || pkg.flight?._id : pkg.flight;
+        const found = flights.find(f => (f._id || f.id) === flightId);
+        return found || (typeof pkg.flight === 'object' ? pkg.flight : null);
+    };
+
+    const rawFlight = resolveRawFlight(packageData);
+    const outboundTimes = normalizeFlightTimes(rawFlight || packageData.flight);
+    const returnTimes = normalizeFlightTimes((rawFlight && rawFlight.return_flight) || packageData.flight?.return_flight);
+
+    // Map airline codes/names using `airlines` list
+    const getAirlineName = (identifier) => {
+        if (!identifier) return '';
+        if (typeof identifier === 'object') return identifier.airline_name || identifier.name || '';
+        const byIata = airlines.find(a => (a.iata_code || '').toLowerCase() === String(identifier).toLowerCase());
+        if (byIata) return byIata.airline_name || byIata.name || identifier;
+        const byName = airlines.find(a => (a.airline_name || '').toLowerCase() === String(identifier).toLowerCase());
+        if (byName) return byName.airline_name || identifier;
+        return identifier;
+    };
+
+    const normalizeFullFlight = (raw) => {
+        if (!raw) return null;
+        return {
+            airline: getAirlineName(raw.departure_trip?.airline || raw.airline || raw.airline_code || raw.iata || raw.iata_code),
+            flight_number: raw.departure_trip?.flight_number || raw.flight_number || raw.number || '',
+            departure_city: raw.departure_trip?.departure_city || raw.departure_city || raw.from_city || '',
+            arrival_city: raw.departure_trip?.arrival_city || raw.arrival_city || raw.to_city || '',
+            departure_time: outboundTimes?.departure_time || null,
+            arrival_time: outboundTimes?.arrival_time || null,
+            return_flight: raw.return_flight ? {
+                airline: getAirlineName(raw.return_flight.departure_trip?.airline || raw.return_flight.airline || raw.return_flight.airline_code),
+                departure_city: raw.return_flight.departure_city || raw.return_flight.departure_trip?.departure_city || '',
+                arrival_city: raw.return_flight.arrival_city || raw.return_flight.departure_trip?.arrival_city || '',
+                departure_time: returnTimes?.departure_time || null,
+                arrival_time: returnTimes?.arrival_time || null,
+            } : null
+        };
+    };
+
+    const flight = normalizeFullFlight(rawFlight || packageData.flight);
 
     return (
         <div className="bg-white rounded-[40px] border border-slate-200 shadow-sm p-4 sm:p-6 lg:p-8 hover:shadow-md transition-all duration-300">
@@ -148,28 +235,34 @@ const UmrahPackageCard = ({ packageData, onBook }) => {
                                 {/* Outbound */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Outbound</p>
-                                        <p className="text-xs font-black text-slate-900">{packageData.flight.airline}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Route</p>
-                                        <p className="text-xs font-black text-slate-900">
-                                            {packageData.flight.departure_city} <span className="text-slate-400">→</span> {packageData.flight.arrival_city}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Return (if available) */}
-                                {packageData.flight.return_flight && (
-                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
-                                        <div>
-                                            <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Return</p>
-                                            <p className="text-xs font-black text-slate-900">{packageData.flight.return_flight.airline || packageData.flight.airline}</p>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Outbound</p>
+                                            <p className="text-xs font-black text-slate-900">{flight?.airline || 'N/A'}</p>
+                                            {flight?.departure_time || flight?.arrival_time ? (
+                                                <p className="text-[10px] text-slate-500 mt-1">{flight?.departure_time ? `Dep: ${flight.departure_time}` : ''}{flight?.arrival_time ? (flight.departure_time ? `  •  Arr: ${flight.arrival_time}` : `Arr: ${flight.arrival_time}`) : ''}</p>
+                                            ) : null}
                                         </div>
                                         <div>
                                             <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Route</p>
                                             <p className="text-xs font-black text-slate-900">
-                                                {packageData.flight.return_flight.departure_city} <span className="text-slate-400">→</span> {packageData.flight.return_flight.arrival_city}
+                                                {flight?.departure_city || 'N/A'} <span className="text-slate-400">→</span> {flight?.arrival_city || 'N/A'}
+                                            </p>
+                                        </div>
+                                </div>
+
+                                {/* Return (if available) */}
+                                {(rawFlight?.return_flight || packageData.flight.return_flight) && (
+                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+                                        <div>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Return</p>
+                                            <p className="text-xs font-black text-slate-900">{flight?.return_flight?.airline || flight?.airline || 'N/A'}</p>
+                                            {flight?.return_flight?.departure_time || flight?.return_flight?.arrival_time ? (
+                                                <p className="text-[10px] text-slate-500 mt-1">{flight.return_flight?.departure_time ? `Dep: ${flight.return_flight.departure_time}` : ''}{flight.return_flight?.arrival_time ? (flight.return_flight.departure_time ? `  •  Arr: ${flight.return_flight.arrival_time}` : `Arr: ${flight.return_flight.arrival_time}`) : ''}</p>
+                                            ) : null}
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Route</p>
+                                            <p className="text-xs font-black text-slate-900">
+                                                {flight?.return_flight?.departure_city || 'N/A'} <span className="text-slate-400">→</span> {flight?.return_flight?.arrival_city || 'N/A'}
                                             </p>
                                         </div>
                                     </div>
@@ -178,10 +271,7 @@ const UmrahPackageCard = ({ packageData, onBook }) => {
                         </div>
                     )}
 
-                    {/* Transport */}
-                    {packageData.transport && (
-                        <QuickInfo label="Transport" value={packageData.transport.sector || 'Included'} icon={<Truck size={14} />} />
-                    )}
+                    {/* Transport (already shown in header badges) */}
                 </div>
 
                 {/* Right Column: Pricing (5 cols) */}
