@@ -24,6 +24,13 @@ export default function Sidebar({ activeTab, setActiveTab, isSidebarOpen, setSid
 
     const handleNavClick = (tab) => {
         setActiveTab(tab);
+        // update URL for direct access (so /hotels works)
+        try {
+            if (tab === 'Hotels') window.history.pushState({}, '', '/hotels');
+            else if (tab === 'Dashboard') window.history.pushState({}, '', '/');
+        } catch (e) {
+            // ignore
+        }
         if (isMobile) setSidebarOpen(false);
     };
 
@@ -84,18 +91,26 @@ export default function Sidebar({ activeTab, setActiveTab, isSidebarOpen, setSid
                             isOpen={isSidebarOpen}
                             isExpanded={isBookingsOpen}
                             onClick={() => setBookingsOpen(!isBookingsOpen)}
-                            active={['Custom Package', 'Umrah Package', 'Ticket', 'Flight Search - Single', 'Flight Search - Round', 'Flight Search - Multi'].includes(activeTab)}
+                            active={['Custom Package', 'Umrah Package', 'Ticket', 'Flight Search', 'Booked Flights'].includes(activeTab)}
                         >
                             <DropdownItem label="Custom Package" active={activeTab === 'Custom Package'} onClick={() => handleNavClick('Custom Package')} />
                             <DropdownItem label="Umrah Package" active={activeTab === 'Umrah Package'} onClick={() => handleNavClick('Umrah Package')} />
                             <DropdownItem label="Ticket" active={activeTab === 'Ticket'} onClick={() => handleNavClick('Ticket')} />
                             <DropdownItem label="Flight Search" active={activeTab === 'Flight Search'} onClick={() => handleNavClick('Flight Search')} />
+                            <DropdownItem label="Booked Flights" active={activeTab === 'Booked Flights'} onClick={() => handleNavClick('Booked Flights')} />
                         </NavDropdown>
                         <NavItem
                             icon={<Package size={20} />}
                             label="Packages"
                             active={activeTab === 'Packages'}
                             onClick={() => handleNavClick('Packages')}
+                            isOpen={isSidebarOpen}
+                        />
+                        <NavItem
+                            icon={<Users size={20} />}
+                            label="Hotels"
+                            active={activeTab === 'Hotels'}
+                            onClick={() => handleNavClick('Hotels')}
                             isOpen={isSidebarOpen}
                         />
                         <NavItem

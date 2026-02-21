@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Dashboard from './components/pages/Dashboard';
 import AgentUmrahCalculator from './components/pages/AgentUmrahCalculator';
 import LoginPage from './components/pages/LoginPage';
 import UmrahPackagePage from './components/pages/UmrahPackagePage';
 import TicketPage from './components/pages/TicketPage';
+import FlightsPage from './pages/bookings/FlightsPage';
+import BookedFlights from './pages/bookings/BookedFlights';
+import HotelsPage from './components/pages/HotelsPage';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import './index.css';
@@ -20,6 +23,13 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access_token'));
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('Dashboard');
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === '/hotels') {
+      setActiveTab('Hotels');
+    }
+  }, []);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
@@ -40,6 +50,12 @@ function App() {
         return <UmrahPackagePage />;
       case 'Ticket':
         return <TicketPage />;
+      case 'Flight Search':
+        return <FlightsPage />;
+      case 'Booked Flights':
+        return <BookedFlights />;
+      case 'Hotels':
+        return <HotelsPage />;
       case 'Packages':
         return <PlaceholderPage title="Packages" />;
       case 'Customers':
